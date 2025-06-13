@@ -5,6 +5,13 @@ import MovieCard from "./components/MovieCard";
 import { useDebounce } from 'react-use';
 import { getTrendingMovies, updateSearchCount } from "./appwrite";
 
+// 👇 dynamic base URL inline
+const getBaseUrl = () => {
+  return process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://get-flicks-api.vercel.app'; 
+};
+
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -22,9 +29,10 @@ const App = () => {
     setMovieList([]);
 
     try {
+      const baseUrl = getBaseUrl();
       const endpoint = query
-        ? `http://localhost:5000/api/movies?query=${encodeURIComponent(query)}`
-        : `http://localhost:5000/api/movies`;
+        ? `${baseUrl}/api/movies?query=${encodeURIComponent(query)}`
+        : `${baseUrl}/api/movies`;
 
       const response = await fetch(endpoint);
       const data = await response.json();
@@ -62,7 +70,8 @@ const App = () => {
 
   const fetchTrailer = async (movieId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/movies/${movieId}/videos`);
+      const baseUrl = getBaseUrl();
+      const res = await fetch(`${baseUrl}/api/movies/${movieId}/videos`);
       const data = await res.json();
 
       const trailer = data.results.find(
@@ -122,7 +131,11 @@ const App = () => {
           ) : (
             <ul className="movie-grid">
               {movieList.map((movie) => (
-                <li key={movie.id} onClick={() => fetchTrailer(movie.id)} className="cursor-pointer relative overflow-hidden transition transform hover:scale-105 active:scale-95 duration-200">
+                <li
+                  key={movie.id}
+                  onClick={() => fetchTrailer(movie.id)}
+                  className="cursor-pointer relative overflow-hidden transition transform hover:scale-105 active:scale-95 duration-200"
+                >
                   <span className="absolute inset-0 bg-white opacity-0 active:opacity-10 transition duration-200 pointer-events-none" />
                   <MovieCard movie={movie} />
                 </li>
