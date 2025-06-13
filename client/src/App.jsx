@@ -9,7 +9,7 @@ import { getTrendingMovies, updateSearchCount } from "./appwrite";
 const getBaseUrl = () => {
   return process.env.NODE_ENV === 'development'
     ? 'http://localhost:5000'
-    : 'https://get-flicks-api.vercel.app'; 
+    : 'https://getflicks.onrender.com'; 
 };
 
 const App = () => {
