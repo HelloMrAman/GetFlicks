@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
-import Search from './components/Search';
+import Search from "./components/Search";
 import Spinner from "./components/Spinner";
 import MovieCard from "./components/MovieCard";
-import { useDebounce } from 'react-use';
+import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "./appwrite";
 
-// 👇 dynamic base URL inline
 const getBaseUrl = () => {
-  return process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5000'
-    : 'https://getflicks.onrender.com'; 
+  return process.env.NODE_ENV === "development"
+    ? "http://localhost:5000"
+    : "https://getflicks.onrender.com";
 };
 
 const App = () => {
@@ -18,14 +17,15 @@ const App = () => {
   const [movieList, setMovieList] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [trailerKey, setTrailerKey] = useState(null);
+  const [loadingMovieId, setLoadingMovieId] = useState(null); // ✅ Track card click loading
 
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
 
-  const fetchMovies = async (query = '') => {
+  const fetchMovies = async (query = "") => {
     setIsLoading(true);
-    setErrorMessage('');
+    setErrorMessage("");
     setMovieList([]);
 
     try {
@@ -42,7 +42,9 @@ const App = () => {
       }
 
       if (query && (!data.results || data.results.length === 0)) {
-        setErrorMessage(`"${query}" movie is not available or try to spell correct.`);
+        setErrorMessage(
+          `"${query}" movie is not available or try to spell correct.`
+        );
         return;
       }
 
@@ -69,22 +71,29 @@ const App = () => {
   };
 
   const fetchTrailer = async (movieId) => {
+    setTrailerKey(null);
+    setLoadingMovieId(movieId);
+
     try {
       const baseUrl = getBaseUrl();
       const res = await fetch(`${baseUrl}/api/movies/${movieId}/videos`);
       const data = await res.json();
 
       const trailer = data.results.find(
-        (vid) => (vid.type === 'Trailer' || vid.type === 'Teaser') && vid.site === 'YouTube'
+        (vid) =>
+          (vid.type === "Trailer" || vid.type === "Teaser") &&
+          vid.site === "YouTube"
       );
 
       if (trailer) {
         setTrailerKey(trailer.key);
       } else {
-        alert('Trailer not available');
+        alert("Trailer not available");
       }
     } catch (error) {
       console.error("Trailer fetch failed:", error);
+    } finally {
+      setLoadingMovieId(null);
     }
   };
 
@@ -102,7 +111,8 @@ const App = () => {
         <header>
           <img src="hero.png" alt="Hero Banner" />
           <h1>
-            Find <span className="text-gradient">Movies</span> You'll Enjoy Without the Hassle
+            Find <span className="text-gradient">Movies</span> You'll Enjoy
+            Without the Hassle
           </h1>
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </header>
@@ -136,8 +146,24 @@ const App = () => {
                   onClick={() => fetchTrailer(movie.id)}
                   className="cursor-pointer relative overflow-hidden transition transform hover:scale-105 active:scale-95 duration-200"
                 >
-                  <span className="absolute inset-0 bg-white opacity-0 active:opacity-10 transition duration-200 pointer-events-none" />
-                  <MovieCard movie={movie} />
+                  {/* Blur Overlay only on active card */}
+                  {loadingMovieId === movie.id && (
+                    <div className="absolute inset-0 backdrop-blur-[2px] z-10 pointer-events-none"></div>
+                  )}
+
+                  {/* Spinner overlay */}
+                  {loadingMovieId === movie.id && (
+                    <div className="absolute z-20
+                    top-[10rem] left-1/2 -translate-x-1/2 
+                    pointer-events-none">
+                      <Spinner />
+                    </div>
+                  )}
+
+                  {/* Movie content always at base z-0 */}
+                  <div className="relative z-0">
+                    <MovieCard movie={movie} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -147,7 +173,9 @@ const App = () => {
         {trailerKey && (
           <div className="modal">
             <div className="modal-content">
-              <span onClick={() => setTrailerKey(null)} className="close">&times;</span>
+              <span onClick={() => setTrailerKey(null)} className="close">
+                &times;
+              </span>
               <iframe
                 width="560"
                 height="315"
